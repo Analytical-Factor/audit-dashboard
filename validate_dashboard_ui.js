@@ -235,6 +235,30 @@ async function main() {
       "Month selector count does not match audit-data.js"
     );
     assert(
+      (await page.locator('.month[data-index="0"]').innerText()) === "Jan 29\n2026",
+      "January audit-date label mismatch"
+    );
+    assert(
+      (await page.locator('.month[data-index="1"]').innerText()) === "Feb 25\n2026",
+      "February audit-date label mismatch"
+    );
+    assert(
+      (await page.locator('.month[data-index="2"]').innerText()) === "Mar 26\n2026",
+      "March audit-date label mismatch"
+    );
+    assert(
+      (await page.locator('.month[data-index="3"]').innerText()) === "Apr 30\n2026",
+      "April audit-date label mismatch"
+    );
+    assert(
+      (await page.locator('.month[data-index="4"]').innerText()) === "May 31\n2026",
+      "May audit-date label mismatch"
+    );
+    assert(
+      (await page.locator('.month[data-index="5"]').innerText()) === "June 28\n2026",
+      "June audit-date label mismatch"
+    );
+    assert(
       (await page.locator("#monthlyBars .bar-group").count()) === data.months.length,
       "Monthly status bar count does not match audit-data.js"
     );
@@ -542,6 +566,16 @@ async function main() {
       assert(
         (await page.locator("#insightCount").innerText()) === "3 insights",
         month.label + ": all-class insight count mismatch"
+      );
+      const classInsight = await page.locator("#attentionList .attention-item").nth(2).innerText();
+      assert(
+        ["A", "AA", "B", "C"].some((label) => classInsight.startsWith(label + " ")),
+        month.label + ": class insight does not use a forecasted ABC class"
+      );
+      assert(
+        !["D E&O", "D NEW", "D USE", "SS-A", "SS-AA", "SS-B", "SS-C", "SS-D"]
+          .some((label) => classInsight.includes(label)),
+        month.label + ": class insight includes an excluded ABC class"
       );
     }
 

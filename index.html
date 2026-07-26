@@ -360,6 +360,15 @@
     const PAGE_SIZE = 50;
     const PART = { ITEM: 0, DESCRIPTION: 1, ABC: 2, STATUS: 3, SOURCE: 4, OVERRIDE: 5 };
     const AUTOMATIC_STATUS = "Automatically Reconciled";
+    const INSIGHT_ABC_CLASSES = new Set(["A", "AA", "B", "C"]);
+    const AUDIT_DATE_LABELS = {
+      "2026-01": "Jan 29",
+      "2026-02": "Feb 25",
+      "2026-03": "Mar 26",
+      "2026-04": "Apr 30",
+      "2026-05": "May 31",
+      "2026-06": "June 28"
+    };
     const metricMonths = data.months.slice(-6);
     const state = {
       monthIndex: data.months.length - 1,
@@ -380,6 +389,7 @@
     const escapeHtml = value => String(value).replace(/[&<>"']/g, character => htmlEntities[character]);
     const rateOf = (value, total) => total ? value / total * 100 : 0;
     const signed = value => `${value >= 0 ? "+" : ""}${value}`;
+    const auditDateLabel = month => AUDIT_DATE_LABELS[month.key] || month.label;
 
     function selectedMonth() {
       return data.months[state.monthIndex];
@@ -503,7 +513,7 @@
 
       const result = document.getElementById("kpiFilterResult");
       if (!exactDataAvailable) {
-        result.innerHTML = `<strong>All ${fmt.format(month.total)} items</strong><span>Class KPI refresh pending for ${escapeHtml(month.label)} ${escapeHtml(month.year)}</span>`;
+        result.innerHTML = `<strong>All ${fmt.format(month.total)} items</strong><span>Class KPI refresh pending for ${escapeHtml(auditDateLabel(month))} ${escapeHtml(month.year)}</span>`;
         return;
       }
       const scopedMonth = aggregateKpiClasses(month);
@@ -539,7 +549,7 @@
         const button = document.createElement("button");
         button.className = "month";
         button.dataset.index = index;
-        button.innerHTML = `<span>${escapeHtml(month.label)}</span><small>${escapeHtml(month.year)}</small>`;
+        button.innerHTML = `<span>${escapeHtml(auditDateLabel(month))}</span><small>${escapeHtml(month.year)}</small>`;
         button.addEventListener("click", () => selectMonth(index));
         monthStrip.appendChild(button);
       });
@@ -548,7 +558,7 @@
     function buildPartPeriodButtons() {
       const options = [
         { key: "all", label: "All months" },
-        ...data.months.map(month => ({ key: month.key, label: `${month.label} ${month.year}` }))
+        ...data.months.map(month => ({ key: month.key, label: `${auditDateLabel(month)} ${month.year}` }))
       ];
       partPeriodButtons.innerHTML = options.map(option =>
         `<button class="period-button" type="button" data-period="${option.key}">${escapeHtml(option.label)}</button>`
@@ -588,10 +598,10 @@
         const scopedMonth = scopedMonthAt(index);
         if (!scopedMonth) {
           return `
-            <div class="bar-group unavailable ${index === state.monthIndex ? "current" : ""}" title="${escapeHtml(month.label)} class-level KPI data has not been refreshed">
+            <div class="bar-group unavailable ${index === state.monthIndex ? "current" : ""}" title="${escapeHtml(auditDateLabel(month))} class-level KPI data has not been refreshed">
               <span class="bar-rate">N/A</span>
               <div class="stacked-bar"></div>
-              <span class="bar-label">${escapeHtml(month.label)}</span>
+              <span class="bar-label">${escapeHtml(auditDateLabel(month))}</span>
             </div>`;
         }
         const reconciledRate = rateOf(scopedMonth.reconciled, scopedMonth.total);
@@ -599,16 +609,16 @@
         return `
           <div class="bar-group ${index === state.monthIndex ? "current" : ""}">
             <span class="bar-rate">${reconciledRate.toFixed(1)}%</span>
-            <div class="stacked-bar" title="${escapeHtml(month.label)}: ${fmt.format(scopedMonth.reconciled)} reconciled, ${fmt.format(scopedMonth.exceptions)} exceptions">
+            <div class="stacked-bar" title="${escapeHtml(auditDateLabel(month))}: ${fmt.format(scopedMonth.reconciled)} reconciled, ${fmt.format(scopedMonth.exceptions)} exceptions">
               <span class="bar-segment exceptions" style="height:${exceptionRate}%"></span>
               <span class="bar-segment reconciled" style="height:${reconciledRate}%"></span>
             </div>
-            <span class="bar-label">${escapeHtml(month.label)}</span>
+            <span class="bar-label">${escapeHtml(auditDateLabel(month))}</span>
           </div>`;
       }).join("");
       document.getElementById("statusChart").setAttribute(
         "aria-label",
-        `Monthly reconciled and exception percentages for ${selectedKpiScopeLabel()} from ${data.months[0].label} through ${data.months.at(-1).label} ${data.months.at(-1).year}`
+        `Monthly reconciled and exception percentages for ${selectedKpiScopeLabel()} from ${auditDateLabel(data.months[0])} through ${auditDateLabel(data.months.at(-1))} ${data.months.at(-1).year}`
       );
     }
 
@@ -634,7 +644,7 @@
       document.getElementById("overrideValue").textContent = fmt.format(month.overrides);
       document.getElementById("overrideRate").textContent = `${overrideRate.toFixed(1)}%`;
       document.getElementById("comparisonText").textContent = previous
-        ? `Compared with ${previous.label} ${previous.year}`
+        ? `Compared with ${auditDateLabel(previous)} ${previous.year}`
         : priorClassDataPending ? "Prior-month class data pending" : "First available audit month";
     }
 
@@ -733,7 +743,7 @@
       const insights = [
         `<div class="attention-item">
           <strong>${previous ? `Reconciliation rate ${direction} ${Math.abs(delta).toFixed(1)} points` : "Baseline reconciliation rate established"}</strong>
-          <span>${month.label} closed at ${reconciliationRate.toFixed(1)}%${previous ? `, ${direction === "rose" ? "up" : "down"} from ${previousRate.toFixed(1)}% in ${previous.label}` : " for the first available audit month"}.</span>
+          <span>${auditDateLabel(month)} closed at ${reconciliationRate.toFixed(1)}%${previous ? `, ${direction === "rose" ? "up" : "down"} from ${previousRate.toFixed(1)}% in ${auditDateLabel(previous)}` : " for the first available audit month"}.</span>
         </div>`,
         `<div class="attention-item">
           <strong>${escapeHtml(topSource.label)} is the largest source group</strong>
@@ -743,15 +753,17 @@
 
       if (state.selectedKpiAbcClasses.size !== 1) {
         const lowestClasses = [...month.abc]
-          .filter(row => row.total > 0)
+          .filter(row => INSIGHT_ABC_CLASSES.has(row.label) && row.total > 0)
           .sort((left, right) => rateOf(left.reconciled, left.total) - rateOf(right.reconciled, right.total))
           .slice(0, 2);
-        const classNames = lowestClasses.map(row => row.label).join(" and ");
-        const classVerb = lowestClasses.length === 1 ? "has" : "have";
-        insights.push(`<div class="attention-item">
-          <strong>${escapeHtml(classNames)} ${classVerb} the lowest reconciliation rate${lowestClasses.length === 1 ? "" : "s"}</strong>
-          <span>Review these classes first when prioritizing exception reduction.</span>
-        </div>`);
+        if (lowestClasses.length) {
+          const classNames = lowestClasses.map(row => row.label).join(" and ");
+          const classVerb = lowestClasses.length === 1 ? "has" : "have";
+          insights.push(`<div class="attention-item">
+            <strong>${escapeHtml(classNames)} ${classVerb} the lowest reconciliation rate${lowestClasses.length === 1 ? "" : "s"}</strong>
+            <span>Review these forecasted classes first when prioritizing exception reduction.</span>
+          </div>`);
+        }
       }
 
       document.getElementById("insightCount").textContent = `${insights.length} insights`;
@@ -759,7 +771,7 @@
     }
 
     function renderAbc(month) {
-      document.getElementById("abcMonth").textContent = month.label;
+      document.getElementById("abcMonth").textContent = auditDateLabel(month);
       document.getElementById("abcList").innerHTML = month.abc.map(row => {
         const rate = rateOf(row.reconciled, row.total);
         return `<div class="abc-row ${rate < 50 ? "low" : ""}">
@@ -779,7 +791,7 @@
     }
 
     function renderOriginalExceptionWorkload(month) {
-      document.getElementById("workloadMonth").textContent = month.label;
+      document.getElementById("workloadMonth").textContent = auditDateLabel(month);
       const scopes = originalExceptionScopes(month);
       const rows = document.getElementById("workloadRows");
       const total = document.getElementById("workloadTotal");
@@ -787,7 +799,7 @@
         && scopes.every(([, scope]) => Number.isFinite(scope.originalExceptions));
 
       if (!hasData) {
-        rows.innerHTML = `<tr><td class="workload-empty" colspan="4">Original exception data is not available for ${escapeHtml(month.label)} ${escapeHtml(month.year)}.</td></tr>`;
+        rows.innerHTML = `<tr><td class="workload-empty" colspan="4">Original exception data is not available for ${escapeHtml(auditDateLabel(month))} ${escapeHtml(month.year)}.</td></tr>`;
         total.innerHTML = "";
         return;
       }
@@ -837,12 +849,12 @@
     }
 
     function formatMonthRange(months) {
-      if (months.length === 1) return `${months[0].label} ${months[0].year}`;
+      if (months.length === 1) return `${auditDateLabel(months[0])} ${months[0].year}`;
       const first = months[0];
       const last = months.at(-1);
       return first.year === last.year
-        ? `${first.label}-${last.label} ${last.year}`
-        : `${first.label} ${first.year}-${last.label} ${last.year}`;
+        ? `${auditDateLabel(first)}-${auditDateLabel(last)} ${last.year}`
+        : `${auditDateLabel(first)} ${first.year}-${auditDateLabel(last)} ${last.year}`;
     }
 
     function refreshPartFilters() {
@@ -858,7 +870,7 @@
         "<th>Item</th>",
         "<th>Description</th>",
         "<th>ABC class</th>",
-        ...months.map(month => `<th class="part-period-heading">${escapeHtml(month.label)} ${escapeHtml(month.year)}<br>Status / forecast source</th>`),
+        ...months.map(month => `<th class="part-period-heading">${escapeHtml(auditDateLabel(month))} ${escapeHtml(month.year)}<br>Status / forecast source</th>`),
         "<th class=\"metric-heading\" title=\"Count within the latest six available audit months\">Auto reconciled<br>Last 6 months</th>",
         "<th class=\"metric-heading\" title=\"Count of periods whose Part-Level status explicitly says with user overrides\">Adjusted<br>Last 6 months</th>",
         "<th class=\"metric-heading\" title=\"Count of manually accepted periods within the latest six available audit months\">Manually accepted<br>Last 6 months</th>"
@@ -1002,8 +1014,8 @@
     function exportPartRows() {
       const months = selectedPartMonths();
       const periodHeaders = months.flatMap(month => [
-        `${month.label} ${month.year} Status`,
-        `${month.label} ${month.year} Forecast Source`
+        `${auditDateLabel(month)} ${month.year} Status`,
+        `${auditDateLabel(month)} ${month.year} Forecast Source`
       ]);
       const rows = [
         [

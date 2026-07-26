@@ -4,12 +4,12 @@ This standalone dashboard reads the six monthly audit workbooks in this reposito
 
 ## Included Data
 
-- January 2026
-- February 2026
-- March 2026
-- April 2026
-- May 2026
-- June 2026 (from the workbook named `EMR - Audit Reports - June 2025.xlsx`)
+- January 29, 2026
+- February 25, 2026
+- March 26, 2026
+- April 30, 2026
+- May 31, 2026
+- June 28, 2026
 
 The KPI view includes overall status, reconciliation type, planner adjustments, forecast-source distribution, and ABC-class breakdown.
 
