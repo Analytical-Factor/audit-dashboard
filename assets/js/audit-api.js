@@ -1,3 +1,4 @@
+// Authentication and snapshot-data client used by the dashboard pages.
 (function () {
   "use strict";
 

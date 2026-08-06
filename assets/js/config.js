@@ -1,3 +1,4 @@
+// Selects the API origin for local development and deployed environments.
 (function () {
   "use strict";
 
@@ -6,6 +7,6 @@
   window.auditDashboardConfig = {
     apiBaseUrl: isLocal
       ? "http://localhost:3000"
-      : "https://dpafprd.emrsn.com/api"
+      : `${window.location.origin}/api`
   };
 })();
