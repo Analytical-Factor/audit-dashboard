@@ -75,11 +75,10 @@
     const user = readStoredJson(USER_KEY);
     if (!user?.id) return false;
 
-    const response = await fetch(apiUrl("/refresh_token"), {
+    const response = await fetch(apiUrl("/api/planning/audit-dashboard/refresh_token"), {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userID: user.id, isActive: "true" })
+      headers: { "Content-Type": "application/json" }
     });
     if (!response.ok) return false;
     storeSession(await response.json());
@@ -113,10 +112,9 @@
     const sessionId = sessionStorage.getItem(SESSION_KEY);
     try {
       if (user?.id && sessionId) {
-        await request("/api/preferences/users/logout", {
+        await request("/api/planning/audit-dashboard/logout", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: user.id, sessionLogout: sessionId })
+          headers: { "Content-Type": "application/json" }
         });
       }
     } catch (error) {
@@ -334,8 +332,17 @@
     });
   }
 
+  async function createUser({ username, password, fullUserName }) {
+    return request("/api/planning/audit-dashboard/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, fullUserName })
+    });
+  }
+
   window.AuditDashboardApi = {
     clearSession,
+    createUser,
     ensureMonths,
     generateSnapshot,
     hasSession,

@@ -7,6 +7,7 @@
   <title>Demand Planning Audit Center</title>
   <script src="assets/js/config.js"></script>
   <script src="assets/js/audit-api.js"></script>
+  <script src="assets/js/create-user-modal.js"></script>
   <script>
     if (!window.AuditDashboardApi.hasSession()) {
       window.location.replace("login.html");
@@ -1254,6 +1255,8 @@
 
     const dashboardUser = JSON.parse(sessionStorage.getItem("auditDashboardUser") || "null");
     document.getElementById("dashboardUser").textContent = dashboardUser?.fullUserName || dashboardUser?.username || "User";
+    const isAdmin = dashboardUser?.role === "adAdmin";
+    window.CreateUserModal.init({ isAdmin });
     buildMonthStrip();
     buildPartPeriodButtons();
     await selectMonth(state.monthIndex);
