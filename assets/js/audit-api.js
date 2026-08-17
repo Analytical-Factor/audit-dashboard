@@ -105,7 +105,9 @@
       return request(path, options, false);
     }
     if (tokenRejected) clearSession();
-    throw new Error(message);
+    const requestError = new Error(message);
+    requestError.status = response.status;
+    throw requestError;
   }
 
   async function logout() {
@@ -243,6 +245,8 @@
         key: apiMonth.targetMonthStart.slice(0, 7),
         targetMonthStart: apiMonth.targetMonthStart,
         cycleDate: apiMonth.cycleDate,
+        generatedAt: apiMonth.generatedAtEpochMs,
+        generatedBy: apiMonth.generatedBy,
         label: apiMonth.label,
         year: String(apiMonth.year),
         ...summaryFromStatusRows(apiMonth.statusByAbc),
@@ -251,7 +255,11 @@
         loaded: false
       };
     });
-    return { months, partsByMonth: {} };
+    return {
+      currentMonth: monthResponse.currentMonth || null,
+      months,
+      partsByMonth: {}
+    };
   }
 
   function applyMonthItems(data, targetMonthStart, items) {
@@ -316,21 +324,25 @@
     });
   }
 
+  async function loadAvailableMonths() {
+    return request("/api/planning/audit-dashboard/months");
+  }
+
   async function loadDashboardData() {
-    const response = await request("/api/planning/audit-dashboard/months");
-    if (!response.months?.length) throw new Error("No audit dashboard months are available.");
+    const response = await loadAvailableMonths();
     const data = createDashboardData(response);
+    if (data.months.length === 0) return data;
     const latest = data.months.at(-1);
     const previous = data.months.at(-2);
     await ensureMonths(data, [latest?.key, previous?.key].filter(Boolean));
     return data;
   }
 
-  async function generateSnapshot(targetMonthStart) {
+  async function generateSnapshot(replaceExisting = false) {
     return request("/api/planning/audit-dashboard/snapshots", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetMonthStart, replaceExisting: false })
+      body: JSON.stringify({ replaceExisting })
     });
   }
 
@@ -339,6 +351,7 @@
     ensureMonths,
     generateSnapshot,
     hasSession,
+    loadAvailableMonths,
     loadDashboardData,
     login,
     logout
