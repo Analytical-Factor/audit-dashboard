@@ -2,8 +2,4 @@ __pycache__/
 *.pyc
 .chrome-*/
 dashboard-*-check*.png
-/EMR - Audit Reports - *.xlsx
 /EMR - Audit Reports Queries.sql
-/audit-data.js
-/build_audit_data.py
-/*.md

@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
   <title>Sign In | Demand Planning Audit Center</title>
-  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="shared.css">
   <style>
     body {
       min-height: 100vh;
@@ -69,35 +68,30 @@
     </form>
   </main>
 
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/audit-api.js"></script>
   <script>
-    if (window.AuditDashboardApi.hasSession()) {
+    const AUTH_KEY = "afAuditDashboardAuthenticated";
+    const USERNAME = "EMRuser";
+    const PASSWORD = "EMRdashboard#2026!";
+
+    if (sessionStorage.getItem(AUTH_KEY) === "true") {
       window.location.replace("index.html");
     }
 
-    document.getElementById("loginForm").addEventListener("submit", async event => {
+    document.getElementById("loginForm").addEventListener("submit", event => {
       event.preventDefault();
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
-      const errorMessage = document.getElementById("loginError");
-      const submitButton = event.currentTarget.querySelector("button[type='submit']");
-      errorMessage.hidden = true;
-      submitButton.disabled = true;
-      submitButton.textContent = "Signing in...";
+      const isValid = username === USERNAME && password === PASSWORD;
 
-      try {
-        await window.AuditDashboardApi.login(username, password);
-        window.location.replace("index.html");
-      } catch (error) {
-        errorMessage.textContent = error.message || "Unable to sign in.";
-        errorMessage.hidden = false;
+      document.getElementById("loginError").hidden = isValid;
+      if (!isValid) {
         document.getElementById("password").value = "";
         document.getElementById("password").focus();
-      } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = "Sign in";
+        return;
       }
+
+      sessionStorage.setItem(AUTH_KEY, "true");
+      window.location.replace("index.html");
     });
   </script>
 </body>

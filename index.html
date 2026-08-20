@@ -3,16 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
   <title>Demand Planning Audit Center</title>
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/audit-api.js"></script>
   <script>
-    if (!window.AuditDashboardApi.hasSession()) {
+    if (sessionStorage.getItem("afAuditDashboardAuthenticated") !== "true") {
       window.location.replace("login.html");
     }
   </script>
-  <link rel="stylesheet" href="assets/css/shared.css">
+  <link rel="stylesheet" href="shared.css">
   <style>
     .hero { display: flex; justify-content: space-between; gap: 28px; align-items: flex-end; margin-bottom: 24px; }
     .hero-actions { display: flex; gap: 9px; }
@@ -195,39 +192,6 @@
     .pagination { display: flex; align-items: center; gap: 8px; }
     .page-button { border: 1px solid #cdd9de; border-radius: 7px; padding: 6px 10px; background: #fff; color: var(--ink); cursor: pointer; font-weight: 700; }
     .page-button:disabled { cursor: default; opacity: .4; }
-    .api-error { margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e5b4b4; color: var(--red); background: var(--red-soft); font-size: 12px; font-weight: 700; }
-    .generate-button { display: inline-flex; align-items: center; gap: 7px; }
-    .generate-button svg { width: 16px; height: 16px; }
-    .snapshot-modal {
-      position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
-      padding: 20px; background: rgba(8, 31, 45, .48); backdrop-filter: blur(4px);
-    }
-    .snapshot-modal[hidden] { display: none; }
-    .snapshot-dialog { width: min(440px, 100%); padding: 24px; }
-    .snapshot-dialog-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
-    .snapshot-dialog-head h2 { margin-bottom: 5px; font-size: 21px; }
-    .snapshot-dialog-head p { margin-bottom: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .snapshot-close {
-      border: 0; border-radius: 8px; padding: 4px 8px; background: transparent;
-      color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1;
-    }
-    .snapshot-close:hover { color: var(--navy); background: #edf3f4; }
-    .snapshot-form { display: grid; gap: 14px; margin-top: 22px; }
-    .snapshot-field { display: grid; gap: 7px; }
-    .snapshot-summary { border: 1px solid #d7e2e5; border-radius: 11px; padding: 14px; background: #f5f8f8; }
-    .snapshot-month-label { color: var(--navy); font-size: 14px; font-weight: 800; }
-    .snapshot-taken-at { margin-top: 6px; color: var(--teal); font-size: 12px; font-weight: 800; }
-    .snapshot-help { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.45; }
-    .snapshot-status { min-height: 34px; border-radius: 8px; padding: 9px 11px; font-size: 11px; }
-    .snapshot-status:empty { display: none; }
-    .snapshot-status.pending { color: var(--navy); background: #edf3f6; }
-    .snapshot-status.success { color: #176a68; background: var(--teal-soft); }
-    .snapshot-status.error { color: var(--red); background: var(--red-soft); }
-    .snapshot-actions { display: flex; justify-content: flex-end; gap: 9px; }
-    .snapshot-actions .button:disabled { cursor: wait; opacity: .65; transform: none; }
-    .dashboard-empty { margin-top: 28px; padding: 38px; text-align: center; }
-    .dashboard-empty h2 { margin-bottom: 8px; }
-    .dashboard-empty p { margin: 0; color: var(--muted); }
     @media (max-width: 1200px) { .dashboard { grid-template-columns: 1fr; } .side-column { grid-template-columns: 1fr 1fr; } .workload-card { grid-column: 2; } }
     @media (max-width: 900px) { .metrics { grid-template-columns: 1fr 1fr; } .composition { grid-template-columns: 1fr; } .breakdown-filters { grid-template-columns: 1fr 1fr; } .kpi-filter-bar { align-items: flex-start; flex-wrap: wrap; } .kpi-filter-result { border-left: 0; padding-left: 0; text-align: left; } }
     @media (max-width: 680px) { .hero, .control-row { align-items: flex-start; flex-direction: column; min-width: 0; } .hero > div:first-child { width: 100%; } .hero > div, .control-row > *, .card-title > * { max-width: 100%; min-width: 0; } .lead { width: 100%; max-width: 100%; } .metrics, .side-column { grid-template-columns: 1fr; } .workload-card { grid-column: auto; } .hero-actions { width: 100%; } .trend-card { min-width: 0; overflow: hidden; } .trend-card .card-title { flex-direction: column; } .chart-legend { width: 100%; } .status-chart { width: 100%; max-width: 100%; overflow-x: auto; } .bar-plot { min-width: 310px; gap: 8px; padding: 0; } .bar-group { width: 43px; } .stacked-bar { width: 28px; } .planner-grid { grid-template-columns: 100px 1fr; } .planner-values { grid-column: 2; } .breakdown-head, .period-selector { flex-direction: column; align-items: stretch; } .period-buttons { justify-content: flex-start; } .breakdown-head .button { align-self: flex-start; } .breakdown-filters { grid-template-columns: 1fr; } .table-footer { flex-direction: column; gap: 9px; } .pagination { flex-wrap: wrap; } .kpi-filter-bar { flex-direction: column; } .kpi-filter-label, .kpi-filter-result { min-width: 0; width: 100%; } }
@@ -238,27 +202,17 @@
     <header class="topbar">
       <div class="brand"><div class="brand-mark">AF</div><div class="brand-name">Demand Planning</div></div>
       <div class="current-section">Audit Center</div>
-      <div class="user-menu"><span class="user" id="dashboardUser"></span><button class="logout-button" id="logoutButton" type="button">Log out</button></div>
+      <div class="user-menu"><span class="user">EMRuser</span><button class="logout-button" id="logoutButton" type="button">Log out</button></div>
     </header>
 
     <main class="page">
-      <div class="api-error card" id="apiError" role="alert" hidden></div>
       <section class="hero reveal">
         <div>
           <div class="eyebrow">Monthly governance / Executive view</div>
           <h1>Demand Planning Audit Pulse</h1>
           <p class="lead">One monthly view of reconciliation health, planner intervention, forecast-source behavior, and the parts that need attention.</p>
         </div>
-        <div class="hero-actions">
-          <button class="button generate-button" id="openSnapshotDialog" type="button" title="View or refresh the current audit month">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
-            </svg>
-            Current month snapshot
-          </button>
-          <button class="button primary" id="exportKpi">Export report</button>
-        </div>
+        <div class="hero-actions"><button class="button primary" id="exportKpi">Export report</button></div>
       </section>
 
       <section class="control-deck card reveal delay-1">
@@ -399,225 +353,30 @@
       </section>
     </main>
   </div>
-  <div class="snapshot-modal" id="snapshotDialog" hidden>
-    <section class="snapshot-dialog card" role="dialog" aria-modal="true" aria-labelledby="snapshotDialogTitle">
-      <div class="snapshot-dialog-head">
-        <div>
-          <h2 id="snapshotDialogTitle">Current month snapshot</h2>
-          <p>View when the current audit snapshot was taken or refresh it from the latest database data.</p>
-        </div>
-        <button class="snapshot-close" id="closeSnapshotDialog" type="button" aria-label="Close">&times;</button>
-      </div>
-      <form class="snapshot-form" id="snapshotForm">
-        <div class="snapshot-summary">
-          <div class="snapshot-month-label" id="snapshotMonthLabel"></div>
-          <div class="snapshot-taken-at" id="snapshotTakenAt"></div>
-          <div class="snapshot-help" id="snapshotActionHelp"></div>
-        </div>
-        <div class="snapshot-status" id="snapshotStatus" role="status" aria-live="polite"></div>
-        <div class="snapshot-actions">
-          <button class="button" id="cancelSnapshot" type="button">Cancel</button>
-          <button class="button primary" id="generateSnapshot" type="submit">Generate snapshot</button>
-        </div>
-      </form>
-    </section>
-  </div>
+  <script src="audit-data.js"></script>
   <script>
-    (async () => {
-    const snapshotDialog = document.getElementById("snapshotDialog");
-    const snapshotForm = document.getElementById("snapshotForm");
-    const snapshotMonthLabel = document.getElementById("snapshotMonthLabel");
-    const snapshotTakenAt = document.getElementById("snapshotTakenAt");
-    const snapshotStatus = document.getElementById("snapshotStatus");
-    const generateSnapshotButton = document.getElementById("generateSnapshot");
-    const snapshotActionHelp = document.getElementById("snapshotActionHelp");
-    const SELECTED_MONTH_KEY = "auditDashboardSelectedMonth";
-    let currentAuditMonth = null;
-    let currentSnapshot = null;
-    let snapshotGenerationPending = false;
-
-    function setSnapshotStatus(message = "", type = "") {
-      snapshotStatus.textContent = message;
-      snapshotStatus.className = `snapshot-status ${type}`.trim();
-    }
-
-    function closeSnapshotDialog() {
-      if (snapshotGenerationPending) return;
-      snapshotDialog.hidden = true;
-      setSnapshotStatus();
-    }
-
-    function openSnapshotDialog() {
-      snapshotDialog.hidden = false;
-      setSnapshotStatus();
-      updateSnapshotAction();
-      generateSnapshotButton.focus();
-    }
-
-    function formatAuditMonth(value) {
-      if (!value) return "Current audit month";
-      return new Intl.DateTimeFormat(undefined, {
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC"
-      }).format(new Date(`${value}T00:00:00.000Z`));
-    }
-
-    function formatSnapshotTime(value) {
-      const date = new Date(value);
-      if (!value || Number.isNaN(date.getTime())) return "Generation time unavailable";
-      return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(date);
-    }
-
-    function setSnapshotContext(source) {
-      currentAuditMonth = source.currentMonth || null;
-      const matchingSnapshot = currentAuditMonth
-        ? source.months.find(
-            month => month.targetMonthStart === currentAuditMonth.targetMonthStart
-          ) || null
-        : null;
-      currentSnapshot = matchingSnapshot
-        ? {
-            ...matchingSnapshot,
-            generatedAt: matchingSnapshot.generatedAt ?? matchingSnapshot.generatedAtEpochMs
-          }
-        : null;
-      updateSnapshotAction();
-    }
-
-    function updateSnapshotAction() {
-      if (snapshotGenerationPending) return;
-      const monthName = formatAuditMonth(currentAuditMonth?.targetMonthStart);
-      snapshotMonthLabel.textContent = currentAuditMonth
-        ? `Current audit month: ${monthName}`
-        : "Current audit month is unavailable";
-      snapshotTakenAt.textContent = currentSnapshot
-        ? `Snapshot taken on ${formatSnapshotTime(currentSnapshot.generatedAt)}`
-        : "No snapshot has been taken for this month.";
-      generateSnapshotButton.textContent = currentSnapshot
-        ? "Regenerate snapshot"
-        : "Generate snapshot";
-      generateSnapshotButton.disabled = !currentAuditMonth;
-      snapshotActionHelp.textContent = currentSnapshot
-        ? "Regenerate to refresh this month from the latest available database data. The previous version remains in audit history."
-        : "Generate the current month from the latest available database data.";
-    }
-
-    document.getElementById("openSnapshotDialog").addEventListener("click", openSnapshotDialog);
-    document.getElementById("closeSnapshotDialog").addEventListener("click", closeSnapshotDialog);
-    document.getElementById("cancelSnapshot").addEventListener("click", closeSnapshotDialog);
-    snapshotDialog.addEventListener("click", event => {
-      if (event.target === snapshotDialog) closeSnapshotDialog();
-    });
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && !snapshotDialog.hidden) closeSnapshotDialog();
-    });
-    snapshotForm.addEventListener("submit", async event => {
-      event.preventDefault();
-      if (!currentAuditMonth || snapshotGenerationPending) return;
-
-      const replaceExisting = Boolean(currentSnapshot);
-      const monthName = formatAuditMonth(currentAuditMonth.targetMonthStart);
-      if (
-        replaceExisting &&
-        !window.confirm(
-          `Regenerate the current ${monthName} snapshot from the latest available database data?`
-        )
-      ) {
-        return;
-      }
-
-      snapshotGenerationPending = true;
-      generateSnapshotButton.disabled = true;
-      generateSnapshotButton.textContent = replaceExisting
-        ? "Regenerating..."
-        : "Generating...";
-      setSnapshotStatus(
-        `${replaceExisting ? "Regenerating" : "Generating"} and validating the monthly snapshot...`,
-        "pending"
-      );
-      try {
-        const result = await window.AuditDashboardApi.generateSnapshot(replaceExisting);
-        sessionStorage.setItem(SELECTED_MONTH_KEY, result.targetMonthStart);
-        setSnapshotStatus(
-          `${result.replaced ? "Regenerated" : "Generated"} ${result.itemCount.toLocaleString()} items. Snapshot taken on ${formatSnapshotTime(result.generatedAtEpochMs)}. Reloading the dashboard...`,
-          "success"
-        );
-        window.setTimeout(() => window.location.reload(), 1200);
-      } catch (error) {
-        if (error.status === 409) {
-          try {
-            const monthResponse = await window.AuditDashboardApi.loadAvailableMonths();
-            setSnapshotContext(monthResponse);
-          } catch (refreshError) {
-            // Keep the original conflict message when the refresh also fails.
-          }
-          setSnapshotStatus(
-            currentSnapshot
-              ? "The current month now has an active snapshot. Review its timestamp and submit again to regenerate it."
-              : error.message,
-            "error"
-          );
-        } else {
-          setSnapshotStatus(error.message || "The audit snapshot could not be generated.", "error");
-        }
-      } finally {
-        snapshotGenerationPending = false;
-        generateSnapshotButton.disabled = false;
-        updateSnapshotAction();
-      }
-    });
-
-    const data = await window.AuditDashboardApi.loadDashboardData();
-    setSnapshotContext(data);
-    if (!data.currentMonth) throw new Error("The current audit month is unavailable.");
-
-    const dashboardUser = JSON.parse(sessionStorage.getItem("auditDashboardUser") || "null");
-    document.getElementById("dashboardUser").textContent = dashboardUser?.fullUserName || dashboardUser?.username || "User";
-    document.getElementById("logoutButton").addEventListener("click", async () => {
-      try {
-        await window.AuditDashboardApi.logout();
-      } finally {
-        window.location.replace("login.html");
-      }
-    });
-
-    if (data.months.length === 0) {
-      document.getElementById("comparisonText").textContent = `Current audit month: ${formatAuditMonth(data.currentMonth.targetMonthStart)}`;
-      document.getElementById("monthStrip").textContent = "No snapshots available";
-      document.querySelector(".tabs").hidden = true;
-      document.getElementById("exportKpi").disabled = true;
-      document.getElementById("kpiView").innerHTML = `
-        <article class="card dashboard-empty">
-          <h2>No audit snapshots are available</h2>
-          <p>Use <strong>Current month snapshot</strong> to generate ${formatAuditMonth(data.currentMonth.targetMonthStart)}.</p>
-        </article>`;
-      document.getElementById("partsView").hidden = true;
-      return;
-    }
-
+    const data = window.auditDashboardData;
     const fmt = new Intl.NumberFormat("en-US");
     const PAGE_SIZE = 50;
-    const PART = { ITEM: 0, DESCRIPTION: 1, ABC: 2, STATUS: 3, SOURCE: 4, OVERRIDE: 5, ITEM_ID: 6, LOCATION_ID: 7, ORGANIZATION: 8 };
+    const PART = { ITEM: 0, DESCRIPTION: 1, ABC: 2, STATUS: 3, SOURCE: 4, OVERRIDE: 5 };
+    const partIdentity = part => `${part[PART.ITEM]}\u0000${part[PART.DESCRIPTION]}`;
     const AUTOMATIC_STATUS = "Automatically Reconciled";
     const INSIGHT_ABC_CLASSES = new Set(["A", "AA", "B", "C"]);
-    const requestedMonthStart = sessionStorage.getItem(SELECTED_MONTH_KEY);
-    sessionStorage.removeItem(SELECTED_MONTH_KEY);
-    const requestedMonthIndex = data.months.findIndex(
-      month => month.targetMonthStart === requestedMonthStart
-    );
-    const initialMonthIndex = requestedMonthIndex >= 0
-      ? requestedMonthIndex
-      : data.months.length - 1;
+    const AUDIT_DATE_LABELS = {
+      "2026-01": "Jan 29",
+      "2026-02": "Feb 25",
+      "2026-03": "Mar 26",
+      "2026-04": "Apr 30",
+      "2026-05": "May 31",
+      "2026-06": "June 28"
+    };
+    const metricMonths = data.months.slice(-6);
     const state = {
-      monthIndex: initialMonthIndex,
+      monthIndex: data.months.length - 1,
       page: 1,
       filteredParts: [],
       reportRows: [],
-      selectedPartMonthKeys: new Set([data.months[initialMonthIndex].key]),
+      selectedPartMonthKeys: new Set([data.months.at(-1).key]),
       selectedKpiAbcClasses: new Set()
     };
     const monthStrip = document.getElementById("monthStrip");
@@ -631,26 +390,7 @@
     const escapeHtml = value => String(value).replace(/[&<>"']/g, character => htmlEntities[character]);
     const rateOf = (value, total) => total ? value / total * 100 : 0;
     const signed = value => `${value >= 0 ? "+" : ""}${value}`;
-    const auditDateLabel = month => month.label;
-    const combinationKey = part => `${part[PART.ITEM_ID]}:${part[PART.LOCATION_ID]}`;
-
-    function showApiError(error) {
-      const errorBox = document.getElementById("apiError");
-      errorBox.textContent = error.message || "The Audit Dashboard request failed.";
-      errorBox.hidden = false;
-      if (!window.AuditDashboardApi.hasSession()) {
-        window.location.replace("login.html");
-      }
-    }
-
-    async function runUiAction(action) {
-      try {
-        document.getElementById("apiError").hidden = true;
-        await action();
-      } catch (error) {
-        showApiError(error);
-      }
-    }
+    const auditDateLabel = month => AUDIT_DATE_LABELS[month.key] || month.label;
 
     function selectedMonth() {
       return data.months[state.monthIndex];
@@ -791,12 +531,12 @@
 
     function buildSixMonthMetrics() {
       const metrics = new Map();
-      data.months.slice(-6).forEach(month => {
+      metricMonths.forEach(month => {
         (data.partsByMonth[month.key] || []).forEach(part => {
-          const key = combinationKey(part);
+          const key = partIdentity(part);
           const itemMetrics = metrics.get(key) || { automatic: 0, adjusted: 0, manuallyAccepted: 0 };
           itemMetrics.automatic += part[PART.STATUS] === AUTOMATIC_STATUS ? 1 : 0;
-          itemMetrics.adjusted += part[PART.OVERRIDE] && part[PART.STATUS] !== AUTOMATIC_STATUS ? 1 : 0;
+          itemMetrics.adjusted += part[PART.OVERRIDE] ? 1 : 0;
           itemMetrics.manuallyAccepted += isManuallyAccepted(part) ? 1 : 0;
           metrics.set(key, itemMetrics);
         });
@@ -804,7 +544,7 @@
       return metrics;
     }
 
-    let sixMonthMetrics = buildSixMonthMetrics();
+    const sixMonthMetrics = buildSixMonthMetrics();
 
     function buildMonthStrip() {
       data.months.forEach((month, index) => {
@@ -812,9 +552,7 @@
         button.className = "month";
         button.dataset.index = index;
         button.innerHTML = `<span>${escapeHtml(auditDateLabel(month))}</span><small>${escapeHtml(month.year)}</small>`;
-        button.addEventListener("click", () => {
-          runUiAction(() => selectMonth(index));
-        });
+        button.addEventListener("click", () => selectMonth(index));
         monthStrip.appendChild(button);
       });
     }
@@ -830,11 +568,11 @@
       partPeriodButtons.addEventListener("click", event => {
         const button = event.target.closest("[data-period]");
         if (!button) return;
-        runUiAction(() => updatePartPeriodSelection(button.dataset.period));
+        updatePartPeriodSelection(button.dataset.period);
       });
     }
 
-    async function updatePartPeriodSelection(periodKey) {
+    function updatePartPeriodSelection(periodKey) {
       if (periodKey === "all") {
         state.selectedPartMonthKeys = new Set(data.months.map(month => month.key));
       } else if (state.selectedPartMonthKeys.size === data.months.length) {
@@ -844,17 +582,7 @@
       } else {
         state.selectedPartMonthKeys.add(periodKey);
       }
-      await loadPartLevelMonths();
       refreshPartReport();
-    }
-
-    async function loadPartLevelMonths() {
-      const metricKeys = data.months.slice(-6).map(month => month.key);
-      await window.AuditDashboardApi.ensureMonths(data, [
-        ...state.selectedPartMonthKeys,
-        ...metricKeys
-      ]);
-      sixMonthMetrics = buildSixMonthMetrics();
     }
 
     function renderPartPeriodButtons() {
@@ -1107,7 +835,7 @@
       const items = new Map();
       selectedPartMonths().forEach(month => {
         (data.partsByMonth[month.key] || []).forEach(part => {
-          const key = combinationKey(part);
+          const key = partIdentity(part);
           const item = items.get(key) || {
             key,
             item: part[PART.ITEM],
@@ -1209,7 +937,6 @@
     function refreshPartReport() {
       state.page = 1;
       const months = selectedPartMonths();
-      const metricMonths = data.months.slice(-6);
       renderPartPeriodButtons();
       refreshPartFilters();
       document.getElementById("partAuditMonth").textContent = state.selectedPartMonthKeys.size === data.months.length
@@ -1233,13 +960,7 @@
       renderOriginalExceptionWorkload(selectedMonth());
     }
 
-    async function selectMonth(index) {
-      const selected = data.months[index];
-      const previous = data.months[index - 1];
-      await window.AuditDashboardApi.ensureMonths(
-        data,
-        [selected?.key, previous?.key].filter(Boolean)
-      );
+    function selectMonth(index) {
       state.monthIndex = index;
       state.page = 1;
       const month = selectedMonth();
@@ -1357,35 +1078,22 @@
     document.getElementById("nextPage").addEventListener("click", () => { state.page += 1; renderParts(); });
     document.getElementById("exportKpi").addEventListener("click", exportKpiReport);
     document.getElementById("exportParts").addEventListener("click", exportPartRows);
-
-    async function activateView(tab) {
+    document.getElementById("logoutButton").addEventListener("click", () => {
+      sessionStorage.removeItem("afAuditDashboardAuthenticated");
+      window.location.replace("login.html");
+    });
+    document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
       document.querySelectorAll(".tab").forEach(item => item.classList.remove("active")); tab.classList.add("active");
       const isKpi = tab.dataset.view === "kpi";
       document.getElementById("kpiView").hidden = !isKpi; document.getElementById("partsView").hidden = isKpi;
-      if (!isKpi) {
-        await loadPartLevelMonths();
-        refreshPartReport();
-      }
-    }
-
-    document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
-      runUiAction(() => activateView(tab));
     }));
 
     buildMonthStrip();
     buildPartPeriodButtons();
-    await selectMonth(state.monthIndex);
+    selectMonth(state.monthIndex);
     if (location.hash === "#parts") {
-      await activateView(document.querySelector('[data-view="parts"]'));
+      document.querySelector('[data-view="parts"]').click();
     }
-    })().catch(error => {
-      const errorBox = document.getElementById("apiError");
-      errorBox.textContent = error.message || "The Audit Dashboard data could not be loaded.";
-      errorBox.hidden = false;
-      if (!window.AuditDashboardApi.hasSession()) {
-        window.location.replace("login.html");
-      }
-    });
   </script>
 </body>
 </html>
