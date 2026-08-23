@@ -7,6 +7,6 @@
   window.auditDashboardConfig = {
     apiBaseUrl: isLocal
       ? "http://localhost:3000"
-      : `${window.location.origin}/api`
+      : window.location.origin
   };
 })();

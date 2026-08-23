@@ -15,6 +15,11 @@
   const SOURCE_ORDER = Object.keys(SOURCE_COLORS);
 
   function apiUrl(path) {
+    if (window.location.protocol === "file:") {
+      throw new Error(
+        "Open the Audit Dashboard through its web server URL; direct file access is not supported."
+      );
+    }
     const configuredBase = window.auditDashboardConfig?.apiBaseUrl;
     if (!configuredBase) throw new Error("Audit Dashboard API URL is not configured.");
     return `${configuredBase.replace(/\/$/, "")}${path}`;
