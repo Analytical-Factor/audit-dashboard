@@ -12,10 +12,12 @@
       window.location.replace("login.html");
     }
   </script>
+  <script src="assets/vendor/exceljs.min.js"></script>
+  <script src="assets/js/afdp-override-report.js"></script>
   <link rel="stylesheet" href="assets/css/shared.css">
   <style>
     .hero { display: flex; justify-content: space-between; gap: 28px; align-items: flex-end; margin-bottom: 24px; }
-    .hero-actions { display: flex; gap: 9px; }
+    .hero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
     .control-deck { padding: 0 20px; margin-bottom: 22px; }
     .control-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
     .month-strip { display: flex; align-items: stretch; gap: 2px; width: 100%; min-width: 0; padding: 12px 0; overflow-x: auto; }
@@ -257,6 +259,9 @@
             </svg>
             Current month snapshot
           </button>
+          <button class="button" id="generateOverrideReport" type="button">
+            Generate override report
+          </button>
           <button class="button primary" id="exportKpi">Export report</button>
         </div>
       </section>
@@ -436,6 +441,24 @@
     let currentSnapshot = null;
     let snapshotGenerationPending = false;
 
+    function showApiError(error) {
+      const errorBox = document.getElementById("apiError");
+      errorBox.textContent = error.message || "The Audit Dashboard request failed.";
+      errorBox.hidden = false;
+      if (!window.AuditDashboardApi.hasSession()) {
+        window.location.replace("login.html");
+      }
+    }
+
+    async function runUiAction(action) {
+      try {
+        document.getElementById("apiError").hidden = true;
+        await action();
+      } catch (error) {
+        showApiError(error);
+      }
+    }
+
     function setSnapshotStatus(message = "", type = "") {
       snapshotStatus.textContent = message;
       snapshotStatus.className = `snapshot-status ${type}`.trim();
@@ -571,6 +594,20 @@
       }
     });
 
+    const overrideReportButton = document.getElementById("generateOverrideReport");
+    overrideReportButton.addEventListener("click", () => runUiAction(async () => {
+      const originalLabel = overrideReportButton.textContent.trim();
+      overrideReportButton.disabled = true;
+      overrideReportButton.textContent = "Generating report...";
+      try {
+        const payload = await window.AuditDashboardApi.loadOverrideReportData();
+        await window.AfdpOverrideReport.download(payload);
+      } finally {
+        overrideReportButton.disabled = false;
+        overrideReportButton.textContent = originalLabel;
+      }
+    }));
+
     const data = await window.AuditDashboardApi.loadDashboardData();
     setSnapshotContext(data);
     if (!data.currentMonth) throw new Error("The current audit month is unavailable.");
@@ -633,24 +670,6 @@
     const signed = value => `${value >= 0 ? "+" : ""}${value}`;
     const auditDateLabel = month => month.label;
     const combinationKey = part => `${part[PART.ITEM_ID]}:${part[PART.LOCATION_ID]}`;
-
-    function showApiError(error) {
-      const errorBox = document.getElementById("apiError");
-      errorBox.textContent = error.message || "The Audit Dashboard request failed.";
-      errorBox.hidden = false;
-      if (!window.AuditDashboardApi.hasSession()) {
-        window.location.replace("login.html");
-      }
-    }
-
-    async function runUiAction(action) {
-      try {
-        document.getElementById("apiError").hidden = true;
-        await action();
-      } catch (error) {
-        showApiError(error);
-      }
-    }
 
     function selectedMonth() {
       return data.months[state.monthIndex];

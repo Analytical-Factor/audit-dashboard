@@ -77,7 +77,8 @@ h1 { margin-bottom: 8px; font-size: clamp(27px, 3vw, 38px); line-height: 1.08; l
   padding: 9px 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(17, 45, 60, .04);
 }
 .button.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
-.button:hover { transform: translateY(-1px); }
+.button:hover:not(:disabled) { transform: translateY(-1px); }
+.button:disabled { cursor: wait; opacity: .65; transform: none; }
 
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
 .tab {

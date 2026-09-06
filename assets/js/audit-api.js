@@ -101,7 +101,9 @@
       credentials: "include",
       headers
     });
-    if (response.ok) return response.json();
+    if (response.ok) {
+      return response.json();
+    }
 
     const message = await parseError(response);
     const tokenRejected = response.status === 401 ||
@@ -351,6 +353,13 @@
     });
   }
 
+  async function loadOverrideReportData() {
+    return request(
+      "/api/planning/audit-dashboard/afdp-override-report-data",
+      { method: "POST" }
+    );
+  }
+
   window.AuditDashboardApi = {
     clearSession,
     ensureMonths,
@@ -358,6 +367,7 @@
     hasSession,
     loadAvailableMonths,
     loadDashboardData,
+    loadOverrideReportData,
     login,
     logout
   };
