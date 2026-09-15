@@ -328,7 +328,7 @@
 
             <article class="planner-card card reveal delay-3">
               <div class="card-title">
-                <div><h2>Planner intervention by status</h2><div class="caption">Items with adjusted forecast or blend-weight overrides</div></div>
+                <div><h2>Planner intervention by status</h2><div class="caption">Items with forecast or blend-weight overrides</div></div>
                 <span class="pill orange" id="overridePill"></span>
               </div>
               <div class="planner-grid">
@@ -343,7 +343,7 @@
               </div>
               <div class="reconciliation-audit">
                 <h3>Reconciled items by planner override</h3>
-                <p class="reconciliation-audit-note">Shows how automatically and manually reconciled items split by planner intervention. An override means the Adjusted Forecast or forecast blend weights differ from the system-generated values.</p>
+                <p class="reconciliation-audit-note">Shows how automatically and manually reconciled items split by planner intervention. For reconciled items, an override means the Adjusted Forecast differs from the frozen forecast baseline when available, otherwise Expected Demand, or forecast blend weights were changed.</p>
                 <div class="reconciliation-audit-empty" id="reconciliationOverrideEmpty" hidden>Automatic/manual override detail is not available for this audit month.</div>
                 <table class="reconciliation-audit-table" id="reconciliationOverrideTable">
                   <thead><tr><th>Reconciliation method</th><th>Total</th><th>With override</th><th>No override</th></tr></thead>
