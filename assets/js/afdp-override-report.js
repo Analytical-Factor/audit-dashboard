@@ -6,10 +6,6 @@
   const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
   const HEADER_FILL = "FF0A3553";
   const DIFFERENCE_FILL = "FFFFF0DC";
-  const MONTH_NAMES = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-  ];
 
   function requireObject(value, fieldName) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -136,13 +132,44 @@
     return { report: normalizedReport, rows };
   }
 
-  function monthLabel(isoDate) {
+  function longMonthLabel(isoDate) {
     const [year, month] = isoDate.split("-").map(Number);
-    return `${MONTH_NAMES[month - 1]}-${year}`;
+    return `${new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+      month: "long",
+      timeZone: "UTC"
+    })} ${year}`;
+  }
+
+  function compactMonthLabel(isoDate) {
+    const [year, month] = isoDate.split("-").map(Number);
+    return `${new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+      month: "long",
+      timeZone: "UTC"
+    })}${String(year).slice(-2)}`;
+  }
+
+  function extractDayLabel(extractedAt) {
+    return extractedAt.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      timeZone: "UTC"
+    });
+  }
+
+  function discrepancyText(row) {
+    const totalDifference = Math.abs(row.qtyDiff).toFixed(4);
+    const percentDifference = row.percentDiff === null
+      ? "N/A"
+      : `${(Math.abs(row.percentDiff) * 100).toFixed(2)}%`;
+    return `Part #${row.item}: Total difference of ${totalDifference} (${percentDifference}) between the AF DP Tool and Demantra.`;
+  }
+
+  function reportTitle(report) {
+    return `AF DP Tool vs Demantra - ${compactMonthLabel(report.periodStart)}-${compactMonthLabel(report.periodEnd)} Comparison - Aligned to Synced Logic - ${extractDayLabel(report.extractedAt)}`;
   }
 
   function buildFilename(report) {
-    return `AFDP_Override_Comparison_${monthLabel(report.periodStart)}_to_${monthLabel(report.periodEnd)}.xlsx`;
+    return `${reportTitle(report)}.xlsx`;
   }
 
   function styleHeader(row) {
@@ -156,42 +183,76 @@
     row.alignment = { vertical: "middle", wrapText: true };
   }
 
-  function addGuide(workbook, report) {
+  function addGuide(workbook, report, rows) {
     const guide = workbook.addWorksheet("Guide", {
       views: [{ showGridLines: false }]
     });
-    guide.columns = [{ width: 28 }, { width: 90 }];
+    guide.columns = [{ width: 28 }, { width: 110 }];
     guide.mergeCells("A1:B1");
-    guide.getCell("A1").value = "AF DP Override Comparison Report";
+    guide.getCell("A1").value = reportTitle(report);
     styleHeader(guide.getRow(1));
 
+    const discrepancies = rows
+      .filter(row => row.hasDifference)
+      .slice()
+      .sort((left, right) =>
+        left.itemPartId - right.itemPartId || left.item.localeCompare(right.item)
+      );
+    const discrepancyCount = discrepancies.length;
+    const resultText = discrepancyCount === 0
+      ? "The values are as expected. No differences were found between the AF DP Tool and Demantra when applying the sync logic described above."
+      : `The values are as expected. ${discrepancyCount} ${discrepancyCount === 1 ? "difference was" : "differences were"} found between the AF DP Tool and Demantra when applying the sync logic described above.`;
     const guideRows = [
-      ["Extracted at", report.extractedAt],
-      ["History end", report.historyEnd],
-      ["Report period", `${report.periodStart} through ${report.periodEnd}`],
-      ["Demantra source", "Oracle"],
+      ["Guide:", ""],
+      ["", `This file compares the Demantra AF_DP_OVERRIDE values against the Adjusted Forecast column in the AF DP Tool for the period ${longMonthLabel(report.periodStart)} through ${longMonthLabel(report.periodEnd)}.`],
       [],
-      ["Rules", ""],
-      ["Common records", "Only item and location combinations present in both systems are included."],
-      ["Included months", "A month is included only when AF DP Adjusted Forecast is not null."],
-      ["Exceptions", "For reconciled = 0, Demantra AF_DP_OVERRIDE is calculated as zero."],
-      ["Reconciliation", "For reconciled <> 0, Demantra AF_DP_OVERRIDE is used as stored; null stays blank."],
-      ["Precision", "Final totals and QTY Diff use two decimals. % Diff displays two decimals."],
-      ["QTY Diff", "AF_DP_OVERRIDE (Demantra, Fixed) minus Adjusted Forecast (AF DP Tool)."],
-      ["% Diff", "QTY Diff divided by the absolute Adjusted Forecast value."],
-      ["Difference sign", "Positive means Demantra is higher; negative means Demantra is lower."],
+      ["", "The Demantra AF_DP_OVERRIDE values were evaluated according to the sync logic:"],
+      ["Sync Logic:", "Demantra values should be overridden only for months where the Adjusted Forecast value in the AF DP Tool is not null."],
       [],
-      ["Counts", ""],
-      ["AF DP combinations", report.counts.afDpCombinations],
-      ["Demantra combinations", report.counts.demantraCombinations],
-      ["Common combinations", report.counts.commonCombinations],
-      ["Report rows", report.counts.reportRows]
+      ["Calculation Method for column \"AF_DP_OVERRIDE (Demantra, Fixed)\":", ""],
+      ["", "For each item and month:"],
+      ["", "• Check whether the Adjusted Forecast value in the AF DP Tool is null."],
+      ["", "• If the value is null, the existing AF_DP_OVERRIDE value in Demantra is considered to be from an old sync and should not be included in the comparison or sum calculations."],
+      ["", "• Only months where the Adjusted Forecast value is not null are included in the calculation."],
+      [],
+      ["Result:", resultText],
+      ...(discrepancyCount > 0
+        ? [["Discrepancies Identified:", ""], ...discrepancies.map(row => ["", discrepancyText(row)])]
+        : [])
     ];
     guideRows.forEach(values => guide.addRow(values));
-    guide.getCell("B2").numFmt = "yyyy-mm-dd hh:mm:ss";
-    ["A7", "A17"].forEach(address => {
+    guide.mergeCells("A2:B2");
+    guide.mergeCells("A8:B8");
+    if (discrepancyCount > 0) guide.mergeCells("A15:B15");
+    const sectionHeadings = ["A2", "A6", "A8", "A14"];
+    if (discrepancyCount > 0) sectionHeadings.push("A15");
+    sectionHeadings.forEach(address => {
       guide.getCell(address).font = { bold: true, color: { argb: HEADER_FILL } };
     });
+    const bold = { bold: true };
+    const setRichText = (address, fragments) => {
+      guide.getCell(address).value = { richText: fragments.map(([text, isBold]) => ({
+        text,
+        ...(isBold ? { font: bold } : {})
+      })) };
+    };
+    setRichText("B3", [
+      ["This file compares the ", false], ["Demantra AF_DP_OVERRIDE", true],
+      [" values against the ", false], ["Adjusted Forecast", true],
+      [" column in the ", false], ["AF DP Tool", true],
+      [" for the period ", false],
+      [`${longMonthLabel(report.periodStart)} through ${longMonthLabel(report.periodEnd)}`, true],
+      [".", false]
+    ]);
+    setRichText("B5", [["The Demantra ", false], ["AF_DP_OVERRIDE", true], [" values were evaluated according to the sync logic:", false]]);
+    setRichText("B6", [
+      ["Demantra values should be overridden only for months where the ", false],
+      ["Adjusted Forecast", true], [" value in the ", false], ["AF DP Tool", true],
+      [" is ", false], ["not null", true], [".", false]
+    ]);
+    setRichText("B10", [["• Check whether the ", false], ["Adjusted Forecast", true], [" value in the ", false], ["AF DP Tool", true], [" is null.", false]]);
+    setRichText("B11", [["• If the value is null, the existing ", false], ["AF_DP_OVERRIDE", true], [" value in Demantra is considered to be from an old sync and should not be included in the comparison or sum calculations.", false]]);
+    setRichText("B12", [["• Only months where the ", false], ["Adjusted Forecast", true], [" value in the ", false], ["AF DP Tool", true], [" is not null are included in the calculation.", false]]);
     guide.eachRow((row, rowNumber) => {
       if (rowNumber > 1) row.alignment = { vertical: "top", wrapText: true };
     });
@@ -242,7 +303,7 @@
     workbook.creator = "AF Demand Planning";
     workbook.created = normalized.report.extractedAt;
     workbook.modified = normalized.report.extractedAt;
-    addGuide(workbook, normalized.report);
+    addGuide(workbook, normalized.report, normalized.rows);
     addComparison(workbook, normalized.rows);
     return { workbook, report: normalized.report };
   }
